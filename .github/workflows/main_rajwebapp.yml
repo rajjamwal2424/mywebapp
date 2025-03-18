@@ -1,39 +1,68 @@
-name: Azure WebApp Deploy
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ASP.Net Core app to Azure Web App - rajwebapp
 
 on:
   push:
     branches:
-      - main  # This means the deployment will trigger when changes are pushed to the "main" branch
-  pull_request:
-    branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # The environment where the build will run (Ubuntu in this case)
+    runs-on: windows-latest
+    permissions:
+      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2  # Checkout the code from the repository
+      - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1  # Set up the .NET environment
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.0'  # Replace this with the version of .NET you're using
+          dotnet-version: '8.x'
 
-      - name: Restore dependencies
-        run: dotnet restore ./MyWebApp/MyWebApp.csproj  # Path to your .csproj file (update if different)
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
 
-      - name: Build the application
-        run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release  # Specify the .csproj file and build in Release configuration
+      - name: dotnet publish
+        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
-      - name: Publish the application
-        run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish  # Publish the app to the ./publish folder
-
-      - name: Deploy to Azure WebApp
-        uses: azure/webapps-deploy@v2  # Azure deploy action
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
         with:
-          app-name: 'raj-webapp'  # Replace with your actual Azure App Service name (use the name you gave your Azure app)
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}  # This will fetch the publish profile from GitHub secrets
-          package: './publish'  # Path to the published application
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
 
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_743D3A80A4C5498ABC728288147D2C65 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_FAA72455B6784B65943488DA1F6DF4F7 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A41CBAC346264C2A96C731E87AC9A217 }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'rajwebapp'
+          slot-name: 'Production'
+          package: .
+          
