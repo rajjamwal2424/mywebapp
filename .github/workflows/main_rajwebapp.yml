@@ -3,36 +3,37 @@ name: Azure WebApp Deploy
 on:
   push:
     branches:
-      - main
+      - main  # This means the deployment will trigger when changes are pushed to the "main" branch
   pull_request:
     branches:
       - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # The environment where the build will run (Ubuntu in this case)
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2  # Checkout the code from the repository
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v1  # Set up the .NET environment
         with:
-          dotnet-version: '6.0'  # Change this to your .NET version
+          dotnet-version: '6.0'  # Replace this with the version of .NET you're using
 
       - name: Restore dependencies
-        run: dotnet restore ./MyWebApp/MyWebApp.csproj  # Specify path to your .csproj file
+        run: dotnet restore ./MyWebApp/MyWebApp.csproj  # Path to your .csproj file (update if different)
 
       - name: Build the application
-        run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release  # Specify path to your .csproj file
+        run: dotnet build ./MyWebApp/MyWebApp.csproj --configuration Release  # Specify the .csproj file and build in Release configuration
 
       - name: Publish the application
-        run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish  # Specify path to your .csproj file
+        run: dotnet publish ./MyWebApp/MyWebApp.csproj --configuration Release --output ./publish  # Publish the app to the ./publish folder
 
       - name: Deploy to Azure WebApp
-        uses: azure/webapps-deploy@v2
+        uses: azure/webapps-deploy@v2  # Azure deploy action
         with:
-          app-name: 'your-app-name'  # Replace with your Azure App Service name
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: './publish'
+          app-name: 'raj-webapp'  # Replace with your actual Azure App Service name (use the name you gave your Azure app)
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}  # This will fetch the publish profile from GitHub secrets
+          package: './publish'  # Path to the published application
+
